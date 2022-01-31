@@ -1,0 +1,24 @@
+{
+  "name": "markdown-obs-teleprompter",
+  "version": "0.0.1",
+  "description": "Telepromter to read your text and command the video reccording accordingly",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/florianpasteur/markdown-obs-teleprompter.git"
+  },
+  "keywords": [
+    "OBS",
+    "Teleprompter",
+    "markdown"
+  ],
+  "author": "Florian PASTEUR",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/florianpasteur/markdown-obs-teleprompter/issues"
+  },
+  "homepage": "https://github.com/florianpasteur/markdown-obs-teleprompter#readme"
+}
