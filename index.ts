@@ -3,66 +3,129 @@ import * as fs from "fs";
 import * as path from "path";
 import * as inquirer from "inquirer";
 import OBSWebSocket from "obs-websocket-js";
+import {TokensList} from "marked";
 
-const scriptsLocation = './scripts';
-const scriptDir = fs.readdirSync(scriptsLocation);
-const markdownFiles = scriptDir.filter(file => file.match(".*\\.md"));
-const testFile = markdownFiles[0];
-const markdownContent = fs.readFileSync(path.join(scriptsLocation, testFile)).toString();
-
-const lexer = marked.lexer(markdownContent);
-
-const scriptTitle = lexer[0].type === "heading" ? lexer[0].text : testFile;
-const texts: marked.Tokens.Paragraph[] = lexer.filter((te) => te.type === "paragraph") as marked.Tokens.Paragraph[];
+const SCRIPTS_LOCATION = './scripts';
 
 const prompt = inquirer.createPromptModule();
+const obs: OBSWebSocket = new OBSWebSocket();
 
 (async function () {
-    const obs = new OBSWebSocket();
     await obs.connect({address: 'localhost:4444', password: ''});
+    const scriptFiles = await findMarkdownFilesIn(SCRIPTS_LOCATION);
 
-    const response = await prompt({
-        type: "confirm",
-        message: "Ready to record: " + scriptTitle,
-        name: "readyToRecord"
+    const {scriptFileSelected} = await prompt({
+        type: "list",
+        message: "Choose your script",
+        name: "scriptFileSelected",
+        choices: scriptFiles
     });
 
-    if (!response.readyToRecord) {
-        return;
-    }
-    for (const text of texts) {
-        const response = await prompt({
-            type: "list", message: text.text, name: "textToRecord", choices: [
-                "Start",
-                "Skip"
+    const scriptContent = await readScriptContent(SCRIPTS_LOCATION, scriptFileSelected);
+
+    const scriptTitle = scriptContent[0].type === "heading" ? scriptContent[0].text : scriptFileSelected;
+    const lines: marked.Tokens.Paragraph[] = scriptContent.filter((token) => token.type === "paragraph") as marked.Tokens.Paragraph[];
+
+    for (const [index, line] of lines.entries()) {
+        console.clear()
+        console.log(`%cScript: ${scriptTitle}`, "color:orange; background:blue; font-size: 16pt")
+        const {textToRecord} = await prompt({
+            type: "list", message: line.text, name: "textToRecord", choices: [
+                ACTIONS.RECORD,
+                ACTIONS.IGNORE
             ]
         });
 
-        switch (response.textToRecord) {
-            case "Start":
-                try {
-                    do {
-                        await obs.send("SetFilenameFormatting", {"filename-formatting": "adopt-2"})
-                        const status = await obs.send("GetRecordingStatus");
-                        if (status.isRecording) {
-                            await obs.send("StopRecording")
-                            await new Promise(resolve => setTimeout(resolve, 1500))
-                        }
-                        await obs.send("StartRecording")
-                        console.log("🔴 Recording...")
-                    } while ((await prompt({
-                        name: "takeFeedback", message: "Take status", type: "list", choices: [
-                            "✔︎ Good",
-                            "🗑 Retake"
-                        ]
-                    })).takeFeedback !== "✔︎ Good")
-                    await obs.send("StopRecording");
-                    break;
-                } catch (e) {
-                    console.log(e);
-                    throw e;
-                }
+        if (textToRecord !== ACTIONS.RECORD) {
+            continue;
         }
+
+        while (true) {
+            await setFilename(obs, `${scriptFileSelected}-${index}`)
+            await stopRecording(obs);
+            await startRecording(obs)
+
+            const {takeFeedback} = await prompt({
+                name: "takeFeedback", message: "How was the take", type: "list", choices: [
+                    ACTIONS.GOOD,
+                    ACTIONS.RETAKE,
+                    ACTIONS.IGNORE
+                ]
+            });
+
+            if (takeFeedback === ACTIONS.GOOD) {
+                await stopRecording(obs);
+                break;
+            }
+            if (takeFeedback == ACTIONS.RETAKE) {
+                continue;
+            }
+            if (takeFeedback) {
+                await stopRecording(obs);
+                break;
+            }
+        }
+
     }
 })()
 
+
+async function findMarkdownFilesIn(location: string): Promise<string[]> {
+    return new Promise((resolve, reject) => {
+        fs.readdir(location, (err, scriptDir) => {
+            if (err) {
+                reject(err);
+                return;
+            }
+            resolve(scriptDir.filter(file => file.match(".*\\.md")))
+        });
+    });
+}
+
+async function stopRecording(obs: OBSWebSocket): Promise<string> {
+    const status = await obs.send("GetRecordingStatus");
+    if (status.isRecording) {
+        return new Promise(async resolve => {
+            obs.on("RecordingStopped", ({recordingFilename}) => {
+                obs.removeAllListeners("RecordingStopped")
+                resolve(recordingFilename);
+            })
+            await obs.send("StopRecording")
+        })
+    }
+    return status.recordingFilename as string;
+}
+
+async function startRecording(obs: OBSWebSocket): Promise<string> {
+    return new Promise(async resolve => {
+        obs.on("RecordingStarted", ({recordingFilename}) => {
+            obs.removeAllListeners("RecordingStarted")
+            console.log("🔴 Recording...")
+            resolve(recordingFilename);
+        })
+        await obs.send("StartRecording")
+    })
+}
+
+async function setFilename(obs: OBSWebSocket, filename: string) {
+    await obs.send("SetFilenameFormatting", {"filename-formatting": filename})
+}
+
+async function readScriptContent(location: string, scriptFilename: string): Promise<TokensList> {
+    return new Promise((resolve, reject) => {
+        fs.readFile(path.join(location, scriptFilename), (err, markdownContent) => {
+            if (err) {
+                reject(err)
+                return;
+            }
+            resolve(marked.lexer(markdownContent.toString()))
+        })
+    })
+}
+
+enum ACTIONS {
+    RECORD = "Record",
+    IGNORE = "Ignore",
+    GOOD = "✔︎ Good",
+    RETAKE = "🗑 Retake",
+}
