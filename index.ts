@@ -24,7 +24,7 @@ const obs: OBSWebSocket = new OBSWebSocket();
     const scriptContent = await readScriptContent(SCRIPTS_LOCATION, scriptFileSelected);
 
     const scriptTitle = scriptContent[0].type === "heading" ? scriptContent[0].text : scriptFileSelected;
-    const lines: marked.Tokens.Paragraph[] = scriptContent.filter((token) => token.type === "paragraph") as marked.Tokens.Paragraph[];
+    const lines = scriptContent.filter((token) => token.type !== "space" && token.type !== "heading") as marked.Tokens.Paragraph[];
 
     for (const [index, line] of lines.entries()) {
         console.clear()
@@ -57,12 +57,9 @@ const obs: OBSWebSocket = new OBSWebSocket();
                 await stopRecording(obs);
                 break;
             }
-            if (takeFeedback == ACTIONS.RETAKE) {
-                continue;
-            }
-            if (takeFeedback) {
+            if (takeFeedback === ACTIONS.RETAKE) {
                 await stopRecording(obs);
-                break;
+                continue;
             }
         }
 
@@ -84,13 +81,17 @@ async function findMarkdownFilesIn(location: string): Promise<string[]> {
 
 async function stopRecording(obs: OBSWebSocket): Promise<string> {
     const status = await obs.send("GetRecordingStatus");
+    //console.debug("Recording status", status)
     if (status.isRecording) {
         return new Promise(async resolve => {
             obs.on("RecordingStopped", ({recordingFilename}) => {
                 obs.removeAllListeners("RecordingStopped")
+                //console.debug("Recording stopped for sure")
                 resolve(recordingFilename);
             })
             await obs.send("StopRecording")
+
+            //console.debug("Recording stopped")
         })
     }
     return status.recordingFilename as string;
@@ -103,7 +104,9 @@ async function startRecording(obs: OBSWebSocket): Promise<string> {
             console.log("🔴 Recording...")
             resolve(recordingFilename);
         })
+        await new Promise(resolve => setTimeout(resolve, 500));
         await obs.send("StartRecording")
+        //console.debug("Recording started")
     })
 }
 
