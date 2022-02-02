@@ -41,7 +41,7 @@ marked.setOptions({
         console.log(marked(`# Script: ${scriptTitle}`))
         console.log(marked(line.raw))
         const {textToRecord} = await prompt({
-            type: "list", message: "Ready to record ?", name: "textToRecord", choices: [
+            type: "list", message: `(${index+1}/${lines.length}) Ready to record ?`, name: "textToRecord", choices: [
                 ACTIONS.RECORD,
                 ACTIONS.IGNORE
             ]
