@@ -2,6 +2,7 @@ import marked, {TokensList} from "marked";
 import * as fs from "fs";
 import * as path from "path";
 import * as inquirer from "inquirer";
+import chalk from "chalk";
 import OBSWebSocket from "obs-websocket-js";
 import TerminalRenderer from 'marked-terminal';
 
@@ -11,7 +12,12 @@ const prompt = inquirer.createPromptModule();
 const obs: OBSWebSocket = new OBSWebSocket();
 
 marked.setOptions({
-    renderer: new TerminalRenderer()
+    renderer: new TerminalRenderer({
+        width: 80,
+        reflowText: true,
+        heading: chalk.red.bold,
+        firstHeading: chalk.green.underline.bold,
+    })
 });
 
 (async function () {
@@ -106,7 +112,7 @@ async function startRecording(obs: OBSWebSocket): Promise<string> {
     return new Promise(async resolve => {
         obs.on("RecordingStarted", ({recordingFilename}) => {
             obs.removeAllListeners("RecordingStarted")
-            console.log("🔴 Recording...")
+            console.log(marked(`## 🔴 Recording...`))
             resolve(recordingFilename);
         })
         await new Promise(resolve => setTimeout(resolve, 500));
