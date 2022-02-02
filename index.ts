@@ -1,14 +1,18 @@
-import * as marked from "marked";
+import marked, {TokensList} from "marked";
 import * as fs from "fs";
 import * as path from "path";
 import * as inquirer from "inquirer";
 import OBSWebSocket from "obs-websocket-js";
-import {TokensList} from "marked";
+import TerminalRenderer from 'marked-terminal';
 
 const SCRIPTS_LOCATION = './scripts';
 
 const prompt = inquirer.createPromptModule();
 const obs: OBSWebSocket = new OBSWebSocket();
+
+marked.setOptions({
+    renderer: new TerminalRenderer()
+});
 
 (async function () {
     await obs.connect({address: 'localhost:4444', password: ''});
@@ -16,7 +20,7 @@ const obs: OBSWebSocket = new OBSWebSocket();
 
     const {scriptFileSelected} = await prompt({
         type: "list",
-        message: "Choose your script",
+        message: "Select your script:",
         name: "scriptFileSelected",
         choices: scriptFiles
     });
@@ -28,9 +32,10 @@ const obs: OBSWebSocket = new OBSWebSocket();
 
     for (const [index, line] of lines.entries()) {
         console.clear()
-        console.log(`%cScript: ${scriptTitle}`, "color:orange; background:blue; font-size: 16pt")
+        console.log(marked(`# Script: ${scriptTitle}`))
+        console.log(marked(line.raw))
         const {textToRecord} = await prompt({
-            type: "list", message: line.text, name: "textToRecord", choices: [
+            type: "list", message: "Ready to record ?", name: "textToRecord", choices: [
                 ACTIONS.RECORD,
                 ACTIONS.IGNORE
             ]
@@ -49,7 +54,7 @@ const obs: OBSWebSocket = new OBSWebSocket();
                 name: "takeFeedback", message: "How was the take", type: "list", choices: [
                     ACTIONS.GOOD,
                     ACTIONS.RETAKE,
-                    ACTIONS.IGNORE
+                    ACTIONS.SKIP
                 ]
             });
 
@@ -129,6 +134,7 @@ async function readScriptContent(location: string, scriptFilename: string): Prom
 enum ACTIONS {
     RECORD = "Record",
     IGNORE = "Ignore",
-    GOOD = "✔︎ Good",
-    RETAKE = "🗑 Retake",
+    GOOD = "✔︎ Good (Save & continue)",
+    RETAKE = "🗑 Retake (Delete take & start over)",
+    SKIP = "~ Ignore (Delete & continue)",
 }
