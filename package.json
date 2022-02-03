@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/florianpasteur/markdown-obs-teleprompter#readme",
   "dependencies": {
+    "ffmetadata": "^1.7.0",
     "inquirer": "^8.2.0",
     "marked": "^3.0.4",
     "marked-terminal": "^5.1.1",

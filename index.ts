@@ -5,6 +5,9 @@ import * as inquirer from "inquirer";
 import chalk from "chalk";
 import OBSWebSocket from "obs-websocket-js";
 import TerminalRenderer from 'marked-terminal';
+// @ts-ignore
+import ffmetadata from "ffmetadata";
+
 
 const SCRIPTS_LOCATION = process.env.SCRIPT_LOCATION || './scripts';
 
@@ -19,6 +22,24 @@ marked.setOptions({
         firstHeading: chalk.green.underline.bold,
     })
 });
+
+async function saveMetadata(obs: OBSWebSocket, filePath: string, metadata: object) {
+    return new  Promise(async (resolve, reject) => {
+        ffmetadata.write(filePath, metadata, function(err: Error) {
+            if (err) {
+                reject(err);
+                return;
+
+            }
+            resolve(true)
+        });
+    })
+}
+
+async function getRecordingFilePath(obs: OBSWebSocket) {
+    const status = await obs.send("GetRecordingStatus");
+    return status.recordingFilename!!
+}
 
 (async function () {
     await obs.connect({address: 'localhost:4444', password: ''});
@@ -40,8 +61,9 @@ marked.setOptions({
         console.clear()
         console.log(marked(`# Script: ${scriptTitle}`))
         console.log(marked(line.raw))
+        const progression = `${index + 1}/${lines.length}`;
         const {textToRecord} = await prompt({
-            type: "list", message: `(${index+1}/${lines.length}) Ready to record ?`, name: "textToRecord", choices: [
+            type: "list", message: `(${progression}) Ready to record ?`, name: "textToRecord", choices: [
                 ACTIONS.RECORD,
                 ACTIONS.IGNORE
             ]
@@ -52,7 +74,8 @@ marked.setOptions({
         }
 
         while (true) {
-            await setFilename(obs, `${scriptFileSelected}-${index}`)
+            const filename = `${scriptFileSelected}-${index}`;
+            await setFilename(obs, filename)
             await stopRecording(obs);
             await startRecording(obs)
 
@@ -65,7 +88,21 @@ marked.setOptions({
             });
 
             if (takeFeedback === ACTIONS.GOOD) {
+                const filePath = await getRecordingFilePath(obs);
                 await stopRecording(obs);
+                await saveMetadata(obs, filePath,
+                    {
+                        title: `${scriptTitle} - ${progression}`,
+                        track: progression,
+                        description: line.text,
+                        lyrics: line.text,
+                        album: scriptTitle,
+                        copyright: process.env.METADATA_COPYRIGHT,
+                        author: process.env.METADATA_AUTHOR,
+                        album_artist: process.env.METADATA_AUTHOR,
+                    }
+
+                )
                 break;
             }
             if (takeFeedback === ACTIONS.RETAKE) {
