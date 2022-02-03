@@ -6,13 +6,14 @@ import chalk from "chalk";
 import OBSWebSocket from "obs-websocket-js";
 import TerminalRenderer from 'marked-terminal';
 // @ts-ignore
-import ffmetadata from "ffmetadata";
+import spawn from "spawn-promise";
 
 
 const SCRIPTS_LOCATION = process.env.SCRIPT_LOCATION || './scripts';
 
 const prompt = inquirer.createPromptModule();
 const obs: OBSWebSocket = new OBSWebSocket();
+const ffmpeg = (args: string[]) => spawn(process.env.FFMPEG_PATH || "ffmpeg", args);
 
 marked.setOptions({
     renderer: new TerminalRenderer({
@@ -23,13 +24,20 @@ marked.setOptions({
     })
 });
 
-async function saveMetadata(obs: OBSWebSocket, filePath: string, metadata: object) {
-    return new  Promise(async (resolve, reject) => {
-        ffmetadata.write(filePath, metadata, function(err: Error) {
+async function saveMetadata(obs: OBSWebSocket, filePath: string, metadata: { [key in string]: string | undefined }) {
+    return new Promise(async (resolve, reject) => {
+        const destinationFile = filePath + "-metadata.mp4";
+        await ffmpeg([
+            "-y",
+            "-i", filePath,
+            ...Object.keys(metadata).flatMap(key => ["-metadata", `${key}=${metadata[key]}`]),
+            destinationFile
+        ]);
+
+        fs.rename(destinationFile, filePath, function (err) {
             if (err) {
                 reject(err);
                 return;
-
             }
             resolve(true)
         });
@@ -74,7 +82,7 @@ async function getRecordingFilePath(obs: OBSWebSocket) {
         }
 
         while (true) {
-            const filename = `${scriptFileSelected}-${index+1}`;
+            const filename = `${scriptFileSelected}-${index + 1}`;
             await setFilename(obs, filename)
             await stopRecording(obs);
             await startRecording(obs)
@@ -101,7 +109,6 @@ async function getRecordingFilePath(obs: OBSWebSocket) {
                         author: process.env.METADATA_AUTHOR,
                         album_artist: process.env.METADATA_AUTHOR,
                     }
-
                 )
                 break;
             }
