@@ -74,7 +74,7 @@ async function getRecordingFilePath(obs: OBSWebSocket) {
         }
 
         while (true) {
-            const filename = `${scriptFileSelected}-${index}`;
+            const filename = `${scriptFileSelected}-${index+1}`;
             await setFilename(obs, filename)
             await stopRecording(obs);
             await startRecording(obs)
