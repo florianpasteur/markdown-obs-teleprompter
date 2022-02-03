@@ -6,7 +6,7 @@ import chalk from "chalk";
 import OBSWebSocket from "obs-websocket-js";
 import TerminalRenderer from 'marked-terminal';
 
-const SCRIPTS_LOCATION = './scripts';
+const SCRIPTS_LOCATION = process.env.SCRIPT_LOCATION || './scripts';
 
 const prompt = inquirer.createPromptModule();
 const obs: OBSWebSocket = new OBSWebSocket();
