@@ -116,6 +116,11 @@ async function getRecordingFilePath(obs: OBSWebSocket) {
                 await stopRecording(obs);
                 continue;
             }
+            if (takeFeedback === ACTIONS.SKIP) {
+                await setFilename(obs, `skip`)
+                await stopRecording(obs);
+                break;
+            }
         }
 
     }
