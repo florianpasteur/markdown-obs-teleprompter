@@ -10,6 +10,7 @@ import spawn from "spawn-promise";
 
 
 const SCRIPTS_LOCATION = process.env.SCRIPT_LOCATION || './scripts';
+const RECORD_LOCATION = process.env.RECORD_LOCATION || '~/obs-inbox';
 
 const prompt = inquirer.createPromptModule();
 const obs: OBSWebSocket = new OBSWebSocket();
@@ -49,6 +50,10 @@ async function getRecordingFilePath(obs: OBSWebSocket) {
     return status.recordingFilename!!
 }
 
+async function setFileLocation(obs: OBSWebSocket, fileLocation: string) {
+    await obs.send("SetRecordingFolder", {"rec-folder": fileLocation})
+}
+
 (async function () {
     await obs.connect({address: 'localhost:4444', password: ''});
     const scriptFiles = await findMarkdownFilesIn(SCRIPTS_LOCATION);
@@ -83,7 +88,8 @@ async function getRecordingFilePath(obs: OBSWebSocket) {
 
         while (true) {
             const filename = `${scriptFileSelected}-${index + 1}`;
-            await setFilename(obs, filename)
+            await setFileLocation(obs, path.join(RECORD_LOCATION, scriptFileSelected));
+            await setFilename(obs, filename);
             await stopRecording(obs);
             await startRecording(obs)
 
