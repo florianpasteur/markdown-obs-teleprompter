@@ -9,7 +9,7 @@ import TerminalRenderer from 'marked-terminal';
 import spawn from "spawn-promise";
 
 
-const SCRIPTS_LOCATION = process.env.SCRIPT_LOCATION || './scripts';
+const SCRIPTS_LOCATION = process.env.SCRIPT_LOCATION || './';
 const RECORD_LOCATION = process.env.RECORD_LOCATION || '~/obs-inbox';
 
 const prompt = inquirer.createPromptModule();
