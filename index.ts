@@ -71,9 +71,13 @@ async function setFileLocation(obs: OBSWebSocket, fileLocation: string) {
     const lines = scriptContent.filter((token) => token.type !== "space" && token.type !== "heading") as marked.Tokens.Paragraph[];
 
     for (const [index, line] of lines.entries()) {
-        console.clear()
-        console.log(marked(`# Script: ${scriptTitle}`))
-        console.log(marked(line.raw))
+        const printSpeech = () => {
+            console.clear()
+            console.log(marked(`# Script: ${scriptTitle}`))
+            console.log(marked(line.raw))
+        }
+
+        printSpeech();
         const progression = `${index + 1}/${lines.length}`;
         const {textToRecord} = await prompt({
             type: "list", message: `(${progression}) Ready to record ?`, name: "textToRecord", choices: [
@@ -87,6 +91,7 @@ async function setFileLocation(obs: OBSWebSocket, fileLocation: string) {
         }
 
         while (true) {
+            printSpeech();
             const filename = `${scriptFileSelected}-${index + 1}`;
             await setFileLocation(obs, path.join(RECORD_LOCATION, scriptFileSelected));
             await setFilename(obs, filename);
@@ -147,17 +152,14 @@ async function findMarkdownFilesIn(location: string): Promise<string[]> {
 
 async function stopRecording(obs: OBSWebSocket): Promise<string> {
     const status = await obs.send("GetRecordingStatus");
-    //console.debug("Recording status", status)
     if (status.isRecording) {
         return new Promise(async resolve => {
             obs.on("RecordingStopped", ({recordingFilename}) => {
                 obs.removeAllListeners("RecordingStopped")
-                //console.debug("Recording stopped for sure")
                 resolve(recordingFilename);
             })
             await obs.send("StopRecording")
 
-            //console.debug("Recording stopped")
         })
     }
     return status.recordingFilename as string;
@@ -172,7 +174,6 @@ async function startRecording(obs: OBSWebSocket): Promise<string> {
         })
         await new Promise(resolve => setTimeout(resolve, 500));
         await obs.send("StartRecording")
-        //console.debug("Recording started")
     })
 }
 
