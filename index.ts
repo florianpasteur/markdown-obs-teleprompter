@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import marked, {TokensList} from "marked";
 import * as fs from "fs";
 import * as path from "path";
@@ -54,88 +56,93 @@ async function setFileLocation(obs: OBSWebSocket, fileLocation: string) {
     await obs.send("SetRecordingFolder", {"rec-folder": fileLocation})
 }
 
-(async function () {
-    await obs.connect({address: 'localhost:4444', password: ''});
-    const scriptFiles = await findMarkdownFilesIn(SCRIPTS_LOCATION);
+try {
+    (async function () {
+        await obs.connect({address: 'localhost:4444', password: ''});
+        const scriptFiles = await findMarkdownFilesIn(SCRIPTS_LOCATION);
 
-    const {scriptFileSelected} = await prompt({
-        type: "list",
-        message: "Select your script:",
-        name: "scriptFileSelected",
-        choices: scriptFiles
-    });
-
-    const scriptContent = await readScriptContent(SCRIPTS_LOCATION, scriptFileSelected);
-
-    const scriptTitle = scriptContent[0].type === "heading" ? scriptContent[0].text : scriptFileSelected;
-    const lines = scriptContent.filter((token) => token.type !== "space" && token.type !== "heading") as marked.Tokens.Paragraph[];
-
-    for (const [index, line] of lines.entries()) {
-        const printSpeech = () => {
-            console.clear()
-            console.log(marked(`# Script: ${scriptTitle}`))
-            console.log(marked(line.raw))
-        }
-
-        printSpeech();
-        const progression = `${index + 1}/${lines.length}`;
-        const {textToRecord} = await prompt({
-            type: "list", message: `(${progression}) Ready to record ?`, name: "textToRecord", choices: [
-                ACTIONS.RECORD,
-                ACTIONS.IGNORE
-            ]
+        const {scriptFileSelected} = await prompt({
+            type: "list",
+            message: "Select your script:",
+            name: "scriptFileSelected",
+            choices: scriptFiles
         });
 
-        if (textToRecord !== ACTIONS.RECORD) {
-            continue;
-        }
+        const scriptContent = await readScriptContent(SCRIPTS_LOCATION, scriptFileSelected);
 
-        while (true) {
+        const scriptTitle = scriptContent[0].type === "heading" ? scriptContent[0].text : scriptFileSelected;
+        const lines = scriptContent.filter((token) => token.type !== "space" && token.type !== "heading") as marked.Tokens.Paragraph[];
+
+        for (const [index, line] of lines.entries()) {
+            const printSpeech = () => {
+                console.clear()
+                console.log(marked(`# Script: ${scriptTitle}`))
+                console.log(marked(line.raw))
+            }
+
             printSpeech();
-            const filename = `${scriptFileSelected}-${index + 1}`;
-            await setFileLocation(obs, path.join(RECORD_LOCATION, scriptFileSelected));
-            await setFilename(obs, filename);
-            await stopRecording(obs);
-            await startRecording(obs)
-
-            const {takeFeedback} = await prompt({
-                name: "takeFeedback", message: "How was the take", type: "list", choices: [
-                    ACTIONS.GOOD,
-                    ACTIONS.RETAKE,
-                    ACTIONS.SKIP
+            const progression = `${index + 1}/${lines.length}`;
+            const {textToRecord} = await prompt({
+                type: "list", message: `(${progression}) Ready to record ?`, name: "textToRecord", choices: [
+                    ACTIONS.RECORD,
+                    ACTIONS.IGNORE
                 ]
             });
 
-            if (takeFeedback === ACTIONS.GOOD) {
-                const filePath = await getRecordingFilePath(obs);
-                await stopRecording(obs);
-                await saveMetadata(obs, filePath,
-                    {
-                        title: `${scriptTitle} - ${progression}`,
-                        track: progression,
-                        description: line.text,
-                        lyrics: line.text,
-                        album: scriptTitle,
-                        copyright: process.env.METADATA_COPYRIGHT,
-                        author: process.env.METADATA_AUTHOR,
-                        album_artist: process.env.METADATA_AUTHOR,
-                    }
-                )
-                break;
-            }
-            if (takeFeedback === ACTIONS.RETAKE) {
-                await stopRecording(obs);
+            if (textToRecord !== ACTIONS.RECORD) {
                 continue;
             }
-            if (takeFeedback === ACTIONS.SKIP) {
-                await setFilename(obs, `skip`)
-                await stopRecording(obs);
-                break;
-            }
-        }
 
-    }
-})()
+            while (true) {
+                printSpeech();
+                const filename = `${scriptFileSelected}-${index + 1}`;
+                await setFileLocation(obs, path.join(RECORD_LOCATION, scriptFileSelected));
+                await setFilename(obs, filename);
+                await stopRecording(obs);
+                await startRecording(obs)
+
+                const {takeFeedback} = await prompt({
+                    name: "takeFeedback", message: "How was the take", type: "list", choices: [
+                        ACTIONS.GOOD,
+                        ACTIONS.RETAKE,
+                        ACTIONS.SKIP
+                    ]
+                });
+
+                if (takeFeedback === ACTIONS.GOOD) {
+                    const filePath = await getRecordingFilePath(obs);
+                    await stopRecording(obs);
+                    await saveMetadata(obs, filePath,
+                        {
+                            title: `${scriptTitle} - ${progression}`,
+                            track: progression,
+                            description: line.text,
+                            lyrics: line.text,
+                            album: scriptTitle,
+                            copyright: process.env.METADATA_COPYRIGHT,
+                            author: process.env.METADATA_AUTHOR,
+                            album_artist: process.env.METADATA_AUTHOR,
+                        }
+                    )
+                    break;
+                }
+                if (takeFeedback === ACTIONS.RETAKE) {
+                    await stopRecording(obs);
+                    continue;
+                }
+                if (takeFeedback === ACTIONS.SKIP) {
+                    await setFilename(obs, `skip`)
+                    await stopRecording(obs);
+                    break;
+                }
+            }
+
+        }
+    })()
+} catch (e) {
+    console.error(e);
+    throw e;
+}
 
 
 async function findMarkdownFilesIn(location: string): Promise<string[]> {
@@ -169,7 +176,7 @@ async function startRecording(obs: OBSWebSocket): Promise<string> {
     return new Promise(async resolve => {
         obs.on("RecordingStarted", ({recordingFilename}) => {
             obs.removeAllListeners("RecordingStarted")
-            console.log(marked(`## 🔴 Recording...`))
+            console.log(marked(`## 🔴 Recording... \x07`))
             resolve(recordingFilename);
         })
         await new Promise(resolve => setTimeout(resolve, 500));

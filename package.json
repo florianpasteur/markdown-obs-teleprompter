@@ -4,7 +4,7 @@
   "description": "Telepromter to read your text and command the video reccording accordingly",
   "main": "index.js",
   "scripts": {
-    "start": "tsc && node dist/index.js",
+    "start": "tsc && node --unhandled-rejections=strict --trace-warnings dist/index.js",
     "test": "jest"
   },
   "repository": {
