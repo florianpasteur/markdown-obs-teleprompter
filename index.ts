@@ -73,7 +73,7 @@ try {
 
         const scriptTitle = scriptContent[0].type === "heading" ? scriptContent[0].text : scriptFileSelected;
 
-        for (let lines = await loadContent(), index=0, line=lines[0]; index < lines.length; index++, line = lines[index], lines = await loadContent()) {
+        for (let lines = await loadContent(), index=0, line=lines[0]; index < lines.length; index++, lines = await loadContent(), line = lines[index]) {
             const printSpeech = () => {
                 console.clear()
                 console.log(marked(`# Script: ${scriptTitle}`))
@@ -87,11 +87,16 @@ try {
                     ACTIONS.RECORD,
                     ACTIONS.IGNORE,
                     ACTIONS.PREVIOUS,
+                    ACTIONS.RELOAD,
                 ]
             });
 
             if (textToRecord === ACTIONS.PREVIOUS) {
                 index -= 2;
+                continue;
+            }
+            if (textToRecord === ACTIONS.RELOAD) {
+                index -= 1;
                 continue;
             }
             if (textToRecord !== ACTIONS.RECORD) {
@@ -138,6 +143,7 @@ try {
                 if (takeFeedback === ACTIONS.SKIP) {
                     await setFilename(obs, `skip`)
                     await stopRecording(obs);
+                    index--;
                     break;
                 }
             }
@@ -209,7 +215,8 @@ enum ACTIONS {
     RECORD = "Record",
     IGNORE = "Ignore",
     PREVIOUS = "Back",
+    RELOAD = "Reload script",
     GOOD = "✔︎ Good (Save & continue)",
     RETAKE = "🗑 Retake (Delete take & start over)",
-    SKIP = "~ Ignore (Delete & continue)",
+    SKIP = "⏹ Cancel (Delete & continue)",
 }
