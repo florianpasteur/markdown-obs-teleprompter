@@ -68,12 +68,12 @@ try {
             choices: scriptFiles
         });
 
+        const loadContent = async () => (await readScriptContent(SCRIPTS_LOCATION, scriptFileSelected)).filter((token) => token.type !== "space" && token.type !== "heading") as marked.Tokens.Paragraph[];
         const scriptContent = await readScriptContent(SCRIPTS_LOCATION, scriptFileSelected);
 
         const scriptTitle = scriptContent[0].type === "heading" ? scriptContent[0].text : scriptFileSelected;
-        const lines = scriptContent.filter((token) => token.type !== "space" && token.type !== "heading") as marked.Tokens.Paragraph[];
 
-        for (const [index, line] of lines.entries()) {
+        for (let lines = await loadContent(), index=0, line=lines[0]; index < lines.length; index++, line = lines[index], lines = await loadContent()) {
             const printSpeech = () => {
                 console.clear()
                 console.log(marked(`# Script: ${scriptTitle}`))
@@ -85,10 +85,15 @@ try {
             const {textToRecord} = await prompt({
                 type: "list", message: `(${progression}) Ready to record ?`, name: "textToRecord", choices: [
                     ACTIONS.RECORD,
-                    ACTIONS.IGNORE
+                    ACTIONS.IGNORE,
+                    ACTIONS.PREVIOUS,
                 ]
             });
 
+            if (textToRecord === ACTIONS.PREVIOUS) {
+                index -= 2;
+                continue;
+            }
             if (textToRecord !== ACTIONS.RECORD) {
                 continue;
             }
@@ -203,6 +208,7 @@ async function readScriptContent(location: string, scriptFilename: string): Prom
 enum ACTIONS {
     RECORD = "Record",
     IGNORE = "Ignore",
+    PREVIOUS = "Back",
     GOOD = "✔︎ Good (Save & continue)",
     RETAKE = "🗑 Retake (Delete take & start over)",
     SKIP = "~ Ignore (Delete & continue)",
