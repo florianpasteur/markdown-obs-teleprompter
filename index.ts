@@ -20,12 +20,14 @@ const ffmpeg = (args: string[]) => spawn(process.env.FFMPEG_PATH || "ffmpeg", ar
 
 marked.setOptions({
     renderer: new TerminalRenderer({
-        width: 80,
+        width: 120,
         reflowText: true,
         heading: chalk.red.bold,
         firstHeading: chalk.green.underline.bold,
     })
 });
+
+// Get sound of video: ffmpeg -y -i V07-exercise-overview-1.mp4 -filter_complex "aformat=channel_layouts=mono,compand,showwavespic=s=1024x60:scale=sqrt"  -frames:v 1 output.bmp
 
 async function saveMetadata(obs: OBSWebSocket, filePath: string, metadata: { [key in string]: string | undefined }) {
     return new Promise(async (resolve, reject) => {
