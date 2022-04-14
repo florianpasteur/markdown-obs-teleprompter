@@ -28,6 +28,8 @@ marked.setOptions({
 });
 
 // Get sound of video: ffmpeg -y -i V07-exercise-overview-1.mp4 -filter_complex "aformat=channel_layouts=mono,compand,showwavespic=s=1024x60:scale=sqrt"  -frames:v 1 output.bmp
+// Get silences of video: ffmpeg -i audio.wav -af silencedetect=n=-50dB:d=0.5 -f null - 2>&1 | grep -Eo "silence_(start|end)" | tail -n 1 | grep "start" | wc -l
+// from https://stackoverflow.com/questions/42507879/how-to-detect-the-silence-at-the-end-of-an-audio-file
 
 async function saveMetadata(obs: OBSWebSocket, filePath: string, metadata: { [key in string]: string | undefined }) {
     return new Promise(async (resolve, reject) => {
