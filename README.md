@@ -1,6 +1,12 @@
 # Markdown OBS Teleprompter
 
 
+## Installation
+
+```shell
+npm install -g git+ssh://git@github.com:florianpasteur/markdown-obs-teleprompter.git
+```
+
 
 ## Reference
 
