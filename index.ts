@@ -48,7 +48,7 @@ try {
                 type: 'input',
                 message: 'Select your record location:',
                 name: 'RECORD_LOCATION',
-                default: '~/obs-inbox',
+                default: '~',
                 when: !(options.recordLocation || process.env.RECORD_LOCATION)
             },
         ]));
