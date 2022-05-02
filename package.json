@@ -1,9 +1,11 @@
 {
   "name": "markdown-obs-teleprompter",
-  "version": "0.0.1",
+  "version": "0.1.2",
   "description": "Telepromter to read your text and command the video reccording accordingly",
   "main": "index.js",
+  "cli": "./dist/index.js",
   "scripts": {
+    "postinstall": "tsc",
     "start": "tsc && node --unhandled-rejections=strict --trace-warnings dist/index.js",
     "test": "jest"
   },
