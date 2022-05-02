@@ -40,21 +40,21 @@ try {
             {
                 type: 'input',
                 message: 'Select your script location:',
-                name: 'SCRIPTS_LOCATION',
+                name: 'scriptLocation',
                 default: process.cwd(),
                 when: !(options.scriptLocation || process.env.SCRIPT_LOCATION)
             },
             {
                 type: 'input',
                 message: 'Select your record location:',
-                name: 'RECORD_LOCATION',
+                name: 'recordLocation',
                 default: '~',
                 when: !(options.recordLocation || process.env.RECORD_LOCATION)
             },
         ]));
 
         const SCRIPTS_LOCATION = options.scriptLocation || process.env.SCRIPT_LOCATION || scriptLocation;
-        const RECORD_LOCATION = options.recordLocation || process.env.RECORD_LOCATION || recordLocation
+        const RECORD_LOCATION = options.recordLocation || process.env.RECORD_LOCATION || recordLocation;
 
         const obs: OBSWebSocket = new OBSWebSocket();
         const ffmpeg = (args: string[]) => spawn(options.ffmpeg || process.env.FFMPEG_PATH || 'ffmpeg', args);

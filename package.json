@@ -1,6 +1,6 @@
 {
   "name": "markdown-obs-teleprompter",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "description": "Telepromter to read your text and command the video reccording accordingly",
   "main": "index.js",
   "bin": "index.ts",
