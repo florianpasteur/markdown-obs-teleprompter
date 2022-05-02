@@ -3,6 +3,13 @@
 
 ## Installation
 
+Install globally
+```shell
+npm install -g ts-node
+```
+
+
+Install package
 ```shell
 npm install -g git+ssh://git@github.com:florianpasteur/markdown-obs-teleprompter.git
 ```
