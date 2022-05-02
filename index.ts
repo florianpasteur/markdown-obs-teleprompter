@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env nodemon
 
 import marked, {TokensList} from 'marked';
 import * as fs from 'fs';
